@@ -89,17 +89,17 @@ class ChipDatabaseApp:
             cur.close()
             conn.close()
         except Exception as e:
-            messagebox.showerror("Database Error", f"Failed to setup database: {str(e)}")
+            messagebox.showerror("Database Error", "Failed to setup database: " + str(e))
 
-    def hash_password(self, password: str) -> str:
+    def hash_password(self, password):
         """Хэширование пароля"""
         return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    def verify_password(self, password: str, hashed: str) -> bool:
+    def verify_password(self, password, hashed):
         """Проверка пароля"""
         return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-    def db_execute(self, query: str, params: tuple = None, fetch: bool = False):
+    def db_execute(self, query, params=None, fetch=False):
         """Универсальный метод выполнения запросов к БД"""
         try:
             conn = psycopg2.connect(**self.db_config)
@@ -228,7 +228,7 @@ class ChipDatabaseApp:
         user_frame = ttk.Frame(self.root)
         user_frame.pack(fill='x', padx=10, pady=5)
 
-        ttk.Label(user_frame, text=f"Logged in as: {self.current_user['full_name']}").pack(side='left')
+        ttk.Label(user_frame, text="Logged in as: " + self.current_user['full_name']).pack(side='left')
         ttk.Button(user_frame, text="Logout", command=self.create_login_frame).pack(side='right')
 
         # Обновляем все комбобоксы при создании интерфейса
@@ -415,7 +415,11 @@ class ChipDatabaseApp:
 
         if chips:
             # Сохраняем mapping chip_id -> chip_number для combobox
-            self.chip_mapping = {f"{chip[1]} (ID: {chip[0]})": chip[0] for chip in chips}
+            self.chip_mapping = {}
+            for chip in chips:
+                display_text = chip[1] + " (ID: " + str(chip[0]) + ")"
+                self.chip_mapping[display_text] = chip[0]
+
             self.chip_combobox['values'] = list(self.chip_mapping.keys())
             if self.chip_combobox['values']:
                 self.chip_combobox.set(self.chip_combobox['values'][0])
@@ -477,11 +481,15 @@ class ChipDatabaseApp:
         ''', fetch=True)
 
         if layers:
-            self.layer_mapping = {f"{layer[1]} - {layer[2]} (ID: {layer[0]})": layer[0] for layer in layers}
+            self.layer_mapping = {}
+            for layer in layers:
+                display_text = layer[1] + " - " + layer[2] + " (ID: " + str(layer[0]) + ")"
+                self.layer_mapping[display_text] = layer[0]
+
             self.layer_combobox['values'] = list(self.layer_mapping.keys())
             if self.layer_combobox['values']:
                 self.layer_combobox.set(self.layer_combobox['values'][0])
-            print(f"Layer combobox updated with {len(layers)} layers")  # Отладочное сообщение
+            print("Layer combobox updated with " + str(len(layers)) + " layers")  # Отладочное сообщение
         else:
             self.layer_combobox['values'] = []
             self.layer_combobox.set('')
@@ -537,7 +545,7 @@ class ChipDatabaseApp:
                 file_name, file_data, file_size, file_hash, 'application/octet-stream', gds_library
             ))
 
-            messagebox.showinfo("Success", f"Version {version_number} uploaded successfully!")
+            messagebox.showinfo("Success", "Version " + str(version_number) + " uploaded successfully!")
             self.version_comment.delete(0, tk.END)
             self.gds_library.delete(0, tk.END)
             self.file_path_label.config(text="No file selected")
@@ -545,7 +553,7 @@ class ChipDatabaseApp:
             self.refresh_versions()
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to upload file: {str(e)}")
+            messagebox.showerror("Error", "Failed to upload file: " + str(e))
 
     def refresh_versions(self):
         """Обновление списка версий в таблице"""
@@ -598,9 +606,9 @@ class ChipDatabaseApp:
                 try:
                     with open(save_path, 'wb') as f:
                         f.write(file_data)
-                    messagebox.showinfo("Success", f"File saved as {save_path}")
+                    messagebox.showinfo("Success", "File saved as " + save_path)
                 except Exception as e:
-                    messagebox.showerror("Error", f"Failed to save file: {str(e)}")
+                    messagebox.showerror("Error", "Failed to save file: " + str(e))
 
     def clear_frame(self):
         """Очистка текущего фрейма"""
