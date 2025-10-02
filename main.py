@@ -3,8 +3,8 @@ from tkinter import ttk, messagebox, filedialog
 import psycopg2
 from datetime import datetime
 import hashlib
-import bcrypt
 import os
+import secrets
 
 
 class ChipDatabaseApp:
@@ -24,6 +24,12 @@ class ChipDatabaseApp:
 
         self.current_user = None
         self.selected_file_path = None
+        self.notebook = None
+
+        # Ссылки на комбобоксы для обновления
+        self.chip_combobox = None
+        self.layer_combobox = None
+
         self.setup_database()
         self.create_login_frame()
 
@@ -39,6 +45,7 @@ class ChipDatabaseApp:
                     user_id SERIAL PRIMARY KEY,
                     username VARCHAR(255) UNIQUE NOT NULL,
                     password_hash VARCHAR(255) NOT NULL,
+                    salt VARCHAR(255) NOT NULL,
                     full_name VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -88,16 +95,34 @@ class ChipDatabaseApp:
             conn.commit()
             cur.close()
             conn.close()
+            print("Database setup completed successfully")
         except Exception as e:
             messagebox.showerror("Database Error", "Failed to setup database: " + str(e))
 
-    def hash_password(self, password):
-        """Хэширование пароля"""
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    def generate_salt(self):
+        """Генерация случайной соли"""
+        return secrets.token_hex(32)
 
-    def verify_password(self, password, hashed):
+    def custom_hash_password(self, password, salt=None):
+        """
+        Собственная функция хеширования пароля
+        Использует комбинацию SHA-256 и SHA-512 с солью
+        """
+        if salt is None:
+            salt = self.generate_salt()
+
+        # Многократное хеширование для увеличения сложности
+        hash1 = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+        hash2 = hashlib.sha512((hash1 + salt).encode('utf-8')).hexdigest()
+        hash3 = hashlib.sha256((hash2 + salt).encode('utf-8')).hexdigest()
+
+        # Возвращаем финальный хеш и соль
+        return hash3, salt
+
+    def verify_password(self, password, hashed_password, salt):
         """Проверка пароля"""
-        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        test_hash, _ = self.custom_hash_password(password, salt)
+        return test_hash == hashed_password
 
     def db_execute(self, query, params=None, fetch=False):
         """Универсальный метод выполнения запросов к БД"""
@@ -162,19 +187,29 @@ class ChipDatabaseApp:
         username = self.login_username.get()
         password = self.login_password.get()
 
+        if not username or not password:
+            messagebox.showerror("Error", "Please enter username and password")
+            return
+
         result = self.db_execute(
-            "SELECT user_id, password_hash, full_name FROM users WHERE username = %s",
+            "SELECT user_id, password_hash, salt, full_name FROM users WHERE username = %s",
             (username,),
             fetch=True
         )
 
-        if result and self.verify_password(password, result[0][1]):
-            self.current_user = {
-                'user_id': result[0][0],
-                'username': username,
-                'full_name': result[0][2]
-            }
-            self.create_main_interface()
+        if result and len(result) > 0:
+            stored_hash = result[0][1]
+            salt = result[0][2]
+
+            if self.verify_password(password, stored_hash, salt):
+                self.current_user = {
+                    'user_id': result[0][0],
+                    'username': username,
+                    'full_name': result[0][3]
+                }
+                self.create_main_interface()
+            else:
+                messagebox.showerror("Error", "Invalid username or password")
         else:
             messagebox.showerror("Error", "Invalid username or password")
 
@@ -188,11 +223,23 @@ class ChipDatabaseApp:
             messagebox.showerror("Error", "All fields are required")
             return
 
-        password_hash = self.hash_password(password)
+        # Проверяем, существует ли пользователь
+        existing_user = self.db_execute(
+            "SELECT user_id FROM users WHERE username = %s",
+            (username,),
+            fetch=True
+        )
+
+        if existing_user:
+            messagebox.showerror("Error", "Username already exists")
+            return
+
+        # Хешируем пароль
+        password_hash, salt = self.custom_hash_password(password)
 
         result = self.db_execute(
-            "INSERT INTO users (username, password_hash, full_name) VALUES (%s, %s, %s)",
-            (username, password_hash, fullname)
+            "INSERT INTO users (username, password_hash, salt, full_name) VALUES (%s, %s, %s, %s)",
+            (username, password_hash, salt, fullname)
         )
 
         if result is not None:
@@ -206,22 +253,22 @@ class ChipDatabaseApp:
         self.clear_frame()
 
         # Создаем notebook для вкладок
-        notebook = ttk.Notebook(self.root)
-        notebook.pack(expand=True, fill='both', padx=10, pady=10)
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
         # Вкладка управления чипами
-        chips_frame = ttk.Frame(notebook)
-        notebook.add(chips_frame, text="Chips Management")
+        chips_frame = ttk.Frame(self.notebook)
+        self.notebook.add(chips_frame, text="Chips Management")
         self.setup_chips_tab(chips_frame)
 
         # Вкладка управления слоями
-        layers_frame = ttk.Frame(notebook)
-        notebook.add(layers_frame, text="Layers Management")
+        layers_frame = ttk.Frame(self.notebook)
+        self.notebook.add(layers_frame, text="Layers Management")
         self.setup_layers_tab(layers_frame)
 
         # Вкладка управления версиями
-        versions_frame = ttk.Frame(notebook)
-        notebook.add(versions_frame, text="Versions Management")
+        versions_frame = ttk.Frame(self.notebook)
+        self.notebook.add(versions_frame, text="Versions Management")
         self.setup_versions_tab(versions_frame)
 
         # Панель пользователя
@@ -362,6 +409,7 @@ class ChipDatabaseApp:
 
     def refresh_all_comboboxes(self):
         """Обновление всех выпадающих списков"""
+        print("Refreshing all comboboxes...")
         self.refresh_chip_combobox()
         self.refresh_layer_combobox()
         self.refresh_chips()
@@ -388,6 +436,7 @@ class ChipDatabaseApp:
             messagebox.showinfo("Success", "Chip added successfully!")
             self.chip_number.delete(0, tk.END)
             self.chip_description.delete(0, tk.END)
+            # ОБНОВЛЯЕМ ВСЕ КОМБОБОКСЫ ПОСЛЕ ДОБАВЛЕНИЯ ЧИПА
             self.refresh_all_comboboxes()
 
     def refresh_chips(self):
@@ -408,6 +457,7 @@ class ChipDatabaseApp:
 
     def refresh_chip_combobox(self):
         """Обновление выпадающего списка чипов"""
+        print("Refreshing chip combobox...")
         chips = self.db_execute(
             "SELECT chip_id, chip_number FROM chips ORDER BY chip_number",
             fetch=True
@@ -416,16 +466,28 @@ class ChipDatabaseApp:
         if chips:
             # Сохраняем mapping chip_id -> chip_number для combobox
             self.chip_mapping = {}
+            chip_values = []
             for chip in chips:
-                display_text = chip[1] + " (ID: " + str(chip[0]) + ")"
+                display_text = f"{chip[1]} (ID: {chip[0]})"
+                chip_values.append(display_text)
                 self.chip_mapping[display_text] = chip[0]
 
-            self.chip_combobox['values'] = list(self.chip_mapping.keys())
-            if self.chip_combobox['values']:
-                self.chip_combobox.set(self.chip_combobox['values'][0])
+            # ОБНОВЛЯЕМ КОМБОБОКС ВО ВКЛАДКЕ СЛОЕВ
+            if self.chip_combobox:
+                current_value = self.chip_combobox.get()
+                self.chip_combobox['values'] = chip_values
+                if chip_values:
+                    if current_value in chip_values:
+                        self.chip_combobox.set(current_value)
+                    else:
+                        self.chip_combobox.set(chip_values[0])
+                else:
+                    self.chip_combobox.set('')
+                print(f"Chip combobox updated with {len(chip_values)} items")
         else:
-            self.chip_combobox['values'] = []
-            self.chip_combobox.set('')
+            if self.chip_combobox:
+                self.chip_combobox['values'] = []
+                self.chip_combobox.set('')
 
     def add_layer(self):
         """Добавление нового слоя"""
@@ -448,10 +510,8 @@ class ChipDatabaseApp:
             messagebox.showinfo("Success", "Layer added successfully!")
             self.layer_name.delete(0, tk.END)
             self.file_extension.delete(0, tk.END)
-
-            # Явно обновляем комбобокс слоев во вкладке версий
-            self.refresh_layer_combobox()
-            self.refresh_layers()
+            # ОБНОВЛЯЕМ ВСЕ КОМБОБОКСЫ ПОСЛЕ ДОБАВЛЕНИЯ СЛОЯ
+            self.refresh_all_comboboxes()
 
     def refresh_layers(self):
         """Обновление списка слоев в таблице"""
@@ -471,8 +531,7 @@ class ChipDatabaseApp:
 
     def refresh_layer_combobox(self):
         """Обновление выпадающего списка слоев для версий"""
-        print("Refreshing layer combobox...")  # Отладочное сообщение
-
+        print("Refreshing layer combobox...")
         layers = self.db_execute('''
             SELECT l.layer_id, c.chip_number, l.layer_name 
             FROM layers l 
@@ -482,18 +541,28 @@ class ChipDatabaseApp:
 
         if layers:
             self.layer_mapping = {}
+            layer_values = []
             for layer in layers:
-                display_text = layer[1] + " - " + layer[2] + " (ID: " + str(layer[0]) + ")"
+                display_text = f"{layer[1]} - {layer[2]} (ID: {layer[0]})"
+                layer_values.append(display_text)
                 self.layer_mapping[display_text] = layer[0]
 
-            self.layer_combobox['values'] = list(self.layer_mapping.keys())
-            if self.layer_combobox['values']:
-                self.layer_combobox.set(self.layer_combobox['values'][0])
-            print("Layer combobox updated with " + str(len(layers)) + " layers")  # Отладочное сообщение
+            # ОБНОВЛЯЕМ КОМБОБОКС ВО ВКЛАДКЕ ВЕРСИЙ
+            if self.layer_combobox:
+                current_value = self.layer_combobox.get()
+                self.layer_combobox['values'] = layer_values
+                if layer_values:
+                    if current_value in layer_values:
+                        self.layer_combobox.set(current_value)
+                    else:
+                        self.layer_combobox.set(layer_values[0])
+                else:
+                    self.layer_combobox.set('')
+                print(f"Layer combobox updated with {len(layer_values)} items")
         else:
-            self.layer_combobox['values'] = []
-            self.layer_combobox.set('')
-            print("No layers found for combobox")  # Отладочное сообщение
+            if self.layer_combobox:
+                self.layer_combobox['values'] = []
+                self.layer_combobox.set('')
 
     def select_file(self):
         """Выбор файла для загрузки"""
@@ -545,7 +614,7 @@ class ChipDatabaseApp:
                 file_name, file_data, file_size, file_hash, 'application/octet-stream', gds_library
             ))
 
-            messagebox.showinfo("Success", "Version " + str(version_number) + " uploaded successfully!")
+            messagebox.showinfo("Success", f"Version {version_number} uploaded successfully!")
             self.version_comment.delete(0, tk.END)
             self.gds_library.delete(0, tk.END)
             self.file_path_label.config(text="No file selected")
