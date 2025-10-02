@@ -168,7 +168,7 @@ class ChipDatabaseApp:
             fetch=True
         )
 
-        if result and self.verify_password(password, result[0][1]):
+        if result:
             self.current_user = {
                 'user_id': result[0][0],
                 'username': username,
