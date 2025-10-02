@@ -15,7 +15,7 @@ class ChipDatabaseApp:
 
         # Параметры подключения к БД
         self.db_config = {
-            'host': 'localhost',
+            'host': '192.168.7.109',
             'database': 'postgres',
             'user': 'postgres',
             'password': '1111',
