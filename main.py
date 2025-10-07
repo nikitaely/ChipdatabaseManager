@@ -4,7 +4,7 @@ import psycopg2
 from datetime import datetime
 import hashlib
 import os
-import secrets
+
 
 
 class ChipDatabaseApp:
@@ -197,15 +197,6 @@ class ChipDatabaseApp:
             fetch=True
         )
 
-<<<<<<< HEAD
-        if result:
-            self.current_user = {
-                'user_id': result[0][0],
-                'username': username,
-                'full_name': result[0][2]
-            }
-            self.create_main_interface()
-=======
         if result and len(result) > 0:
             stored_hash = result[0][1]
             salt = result[0][2]
@@ -219,7 +210,6 @@ class ChipDatabaseApp:
                 self.create_main_interface()
             else:
                 messagebox.showerror("Error", "Invalid username or password")
->>>>>>> 294a0ede2aca90eab5533418eceaf69308b886da
         else:
             messagebox.showerror("Error", "Invalid username or password")
 
@@ -478,7 +468,7 @@ class ChipDatabaseApp:
             self.chip_mapping = {}
             chip_values = []
             for chip in chips:
-                display_text = f"{chip[1]} (ID: {chip[0]})"
+                display_text = chip[1] + ' (ID: '+ chip[0] + ')'
                 chip_values.append(display_text)
                 self.chip_mapping[display_text] = chip[0]
 
@@ -493,7 +483,7 @@ class ChipDatabaseApp:
                         self.chip_combobox.set(chip_values[0])
                 else:
                     self.chip_combobox.set('')
-                print(f"Chip combobox updated with {len(chip_values)} items")
+                print("Chip combobox updated with" + len(chip_values) + "items")
         else:
             if self.chip_combobox:
                 self.chip_combobox['values'] = []
@@ -553,7 +543,7 @@ class ChipDatabaseApp:
             self.layer_mapping = {}
             layer_values = []
             for layer in layers:
-                display_text = f"{layer[1]} - {layer[2]} (ID: {layer[0]})"
+                display_text = layer[1] + ' - ' + layer[2] + ' (ID: ' + layer[0] + ')'
                 layer_values.append(display_text)
                 self.layer_mapping[display_text] = layer[0]
 
@@ -568,7 +558,7 @@ class ChipDatabaseApp:
                         self.layer_combobox.set(layer_values[0])
                 else:
                     self.layer_combobox.set('')
-                print(f"Layer combobox updated with {len(layer_values)} items")
+                print("Layer combobox updated with "+ len(layer_values) + " items")
         else:
             if self.layer_combobox:
                 self.layer_combobox['values'] = []
@@ -624,7 +614,7 @@ class ChipDatabaseApp:
                 file_name, file_data, file_size, file_hash, 'application/octet-stream', gds_library
             ))
 
-            messagebox.showinfo("Success", f"Version {version_number} uploaded successfully!")
+            messagebox.showinfo("Success", "Version " + version_number + " uploaded successfully!")
             self.version_comment.delete(0, tk.END)
             self.gds_library.delete(0, tk.END)
             self.file_path_label.config(text="No file selected")
