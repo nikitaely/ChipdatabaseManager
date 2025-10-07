@@ -60,7 +60,7 @@ class MainWindow:
         user_frame = ttk.Frame(self.root)
         user_frame.pack(fill='x', padx=10, pady=5)
 
-        ttk.Label(user_frame, text=f"Logged in as: {self.current_user['full_name']}").pack(side='left')
+        ttk.Label(user_frame, text="Logged in as: " + self.current_user['full_name']).pack(side='left')
         ttk.Button(user_frame, text="Logout", command=self.logout).pack(side='right')
 
     def setup_chips_tab(self, parent):
@@ -205,7 +205,7 @@ class MainWindow:
             self.chip_mapping = {}
             chip_values = []
             for chip in chips:
-                display_text = f"{chip['chip_number']} (ID: {chip['chip_id']})"
+                display_text = "{} (ID: {})".format(chip['chip_number'], chip['chip_id'])
                 chip_values.append(display_text)
                 self.chip_mapping[display_text] = chip['chip_id']
 
@@ -228,7 +228,7 @@ class MainWindow:
             self.layer_mapping = {}
             layer_values = []
             for layer in layers:
-                display_text = f"{layer['chip_number']} - {layer['layer_name']} (ID: {layer['layer_id']})"
+                display_text = "{} - {} (ID: {})".format(layer['chip_number'], layer['layer_name'], layer['layer_id'])
                 layer_values.append(display_text)
                 self.layer_mapping[display_text] = layer['layer_id']
 
@@ -259,7 +259,7 @@ class MainWindow:
             self.chip_description_entry.delete(0, tk.END)
             self.refresh_all_comboboxes()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to add chip: {str(e)}")
+            messagebox.showerror("Error", "Failed to add chip: " + str(e))
 
     def refresh_chips(self):
         """Обновление списка чипов в таблице"""
@@ -296,7 +296,7 @@ class MainWindow:
             self.file_extension_entry.delete(0, tk.END)
             self.refresh_all_comboboxes()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to add layer: {str(e)}")
+            messagebox.showerror("Error", "Failed to add layer: " + str(e))
 
     def refresh_layers(self):
         """Обновление списка слоев в таблице"""
@@ -361,7 +361,7 @@ class MainWindow:
             self.refresh_versions()
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to upload file: {str(e)}")
+            messagebox.showerror("Error", "Failed to upload file: " + str(e))
 
     def refresh_versions(self):
         """Обновление списка версий в таблице"""
@@ -406,10 +406,10 @@ class MainWindow:
 
                 if save_path:
                     self.file_manager.save_file(file_data, save_path)
-                    messagebox.showinfo("Success", f"File saved as {save_path}")
+                    messagebox.showinfo("Success", "File saved as " + save_path)
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to download file: {str(e)}")
+            messagebox.showerror("Error", "Failed to download file: " + str(e))
 
     def logout(self):
         """Выход из системы"""
