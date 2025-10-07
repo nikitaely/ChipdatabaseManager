@@ -1,19 +1,19 @@
+# main.py
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import psycopg2
 from datetime import datetime
 import hashlib
 import os
-
+import secrets
 
 
 class ChipDatabaseApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Chip Design Database Manager")
-        self.root.geometry("1200x800")
 
-        # Параметры подключения к БД
+        # Конфигурация базы данных
         self.db_config = {
             'host': '192.168.7.109',
             'database': 'postgres',
@@ -22,165 +22,31 @@ class ChipDatabaseApp:
             'port': 5432
         }
 
+        # Инициализация менеджеров
+        self.setup_managers()
+
+        # Текущий пользователь
         self.current_user = None
-        self.selected_file_path = None
-        self.notebook = None
 
-        # Ссылки на комбобоксы для обновления
-        self.chip_combobox = None
-        self.layer_combobox = None
+        # Показать окно входа
+        self.show_login()
 
-        self.setup_database()
-        self.create_login_frame()
-
-    def setup_database(self):
-        """Создание таблиц если их нет"""
+    def setup_managers(self):
+        """Инициализация всех менеджеров"""
         try:
-            conn = psycopg2.connect(**self.db_config)
-            cur = conn.cursor()
+            self.db_manager = DatabaseManager(self.db_config)
+            self.auth_manager = AuthManager(self.db_config)
+            self.file_manager = FileManager()
 
-            # Создание таблицы users если не существует
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    user_id SERIAL PRIMARY KEY,
-                    username VARCHAR(255) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    salt VARCHAR(255) NOT NULL,
-                    full_name VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            # Создание таблиц если их нет
+            self.db_manager.setup_tables()
 
-            # Создание таблицы chips если не существует
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS chips (
-                    chip_id SERIAL PRIMARY KEY,
-                    chip_number VARCHAR(255) NOT NULL,
-                    description VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-
-            # Создание таблицы layers если не существует
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS layers (
-                    layer_id SERIAL PRIMARY KEY,
-                    chip_id INTEGER REFERENCES chips(chip_id),
-                    layer_name VARCHAR(255) NOT NULL,
-                    file_extension VARCHAR(50),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-
-            # Создание таблицы layer_versions если не существует
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS layer_versions (
-                    version_id SERIAL PRIMARY KEY,
-                    layer_id INTEGER REFERENCES layers(layer_id),
-                    version_number INTEGER NOT NULL,
-                    uploaded_by INTEGER REFERENCES users(user_id),
-                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    comment VARCHAR(255),
-                    file_name VARCHAR(255),
-                    file_data BYTEA,
-                    file_size INTEGER,
-                    file_hash VARCHAR(255),
-                    mime_type VARCHAR(100),
-                    gds_library_name VARCHAR(255),
-                    gds_mod_time TIMESTAMP,
-                    gds_units NUMERIC
-                )
-            ''')
-
-            conn.commit()
-            cur.close()
-            conn.close()
-            print("Database setup completed successfully")
         except Exception as e:
-            messagebox.showerror("Database Error", "Failed to setup database: " + str(e))
-
-    def generate_salt(self):
-        """Генерация случайной соли"""
-        return secrets.token_hex(32)
-
-    def custom_hash_password(self, password, salt=None):
-        """
-        Собственная функция хеширования пароля
-        Использует комбинацию SHA-256 и SHA-512 с солью
-        """
-        if salt is None:
-            salt = self.generate_salt()
-
-        # Многократное хеширование для увеличения сложности
-        hash1 = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
-        hash2 = hashlib.sha512((hash1 + salt).encode('utf-8')).hexdigest()
-        hash3 = hashlib.sha256((hash2 + salt).encode('utf-8')).hexdigest()
-
-        # Возвращаем финальный хеш и соль
-        return hash3, salt
-
-    def verify_password(self, password, hashed_password, salt):
-        """Проверка пароля"""
-        test_hash, _ = self.custom_hash_password(password, salt)
-        return test_hash == hashed_password
-
-    def db_execute(self, query, params=None, fetch=False):
-        """Универсальный метод выполнения запросов к БД"""
-        try:
-            conn = psycopg2.connect(**self.db_config)
-            cur = conn.cursor()
-            cur.execute(query, params)
-
-            if fetch:
-                result = cur.fetchall()
-            else:
-                conn.commit()
-                result = None
-
-            cur.close()
-            conn.close()
-            return result
-        except Exception as e:
-            messagebox.showerror("Database Error", str(e))
-            return None
-
-    def create_login_frame(self):
-        """Форма входа/регистрации"""
-        self.clear_frame()
-
-        frame = ttk.Frame(self.root, padding="20")
-        frame.pack(expand=True)
-
-        ttk.Label(frame, text="Chip Database Manager", font=('Arial', 16)).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Поля для входа
-        ttk.Label(frame, text="Username:").grid(row=1, column=0, sticky='e', pady=5)
-        self.login_username = ttk.Entry(frame, width=20)
-        self.login_username.grid(row=1, column=1, pady=5)
-
-        ttk.Label(frame, text="Password:").grid(row=2, column=0, sticky='e', pady=5)
-        self.login_password = ttk.Entry(frame, width=20, show='*')
-        self.login_password.grid(row=2, column=1, pady=5)
-
-        ttk.Button(frame, text="Login", command=self.login).grid(row=3, column=0, columnspan=2, pady=10)
-
-        # Разделитель
-        ttk.Separator(frame, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky='ew', pady=10)
-
-        # Поля для регистрации
-        ttk.Label(frame, text="Full Name:").grid(row=5, column=0, sticky='e', pady=5)
-        self.reg_fullname = ttk.Entry(frame, width=20)
-        self.reg_fullname.grid(row=5, column=1, pady=5)
-
-        ttk.Label(frame, text="Username:").grid(row=6, column=0, sticky='e', pady=5)
-        self.reg_username = ttk.Entry(frame, width=20)
-        self.reg_username.grid(row=6, column=1, pady=5)
-
-        ttk.Label(frame, text="Password:").grid(row=7, column=0, sticky='e', pady=5)
-        self.reg_password = ttk.Entry(frame, width=20, show='*')
-        self.reg_password.grid(row=7, column=1, pady=5)
-
-        ttk.Button(frame, text="Register", command=self.register).grid(row=8, column=0, columnspan=2, pady=10)
+            tk.messagebox.showerror(
+                "Initialization Error",
+                f"Failed to initialize application: {str(e)}"
+            )
+            self.root.quit()
 
     def login(self):
         """Вход пользователя"""
@@ -468,7 +334,7 @@ class ChipDatabaseApp:
             self.chip_mapping = {}
             chip_values = []
             for chip in chips:
-                display_text = chip[1] + ' (ID: '+ chip[0] + ')'
+                display_text = f"{chip[1]} (ID: {chip[0]})"
                 chip_values.append(display_text)
                 self.chip_mapping[display_text] = chip[0]
 
@@ -483,7 +349,7 @@ class ChipDatabaseApp:
                         self.chip_combobox.set(chip_values[0])
                 else:
                     self.chip_combobox.set('')
-                print("Chip combobox updated with" + len(chip_values) + "items")
+                print(f"Chip combobox updated with {len(chip_values)} items")
         else:
             if self.chip_combobox:
                 self.chip_combobox['values'] = []
@@ -543,7 +409,7 @@ class ChipDatabaseApp:
             self.layer_mapping = {}
             layer_values = []
             for layer in layers:
-                display_text = layer[1] + ' - ' + layer[2] + ' (ID: ' + layer[0] + ')'
+                display_text = f"{layer[1]} - {layer[2]} (ID: {layer[0]})"
                 layer_values.append(display_text)
                 self.layer_mapping[display_text] = layer[0]
 
@@ -558,7 +424,7 @@ class ChipDatabaseApp:
                         self.layer_combobox.set(layer_values[0])
                 else:
                     self.layer_combobox.set('')
-                print("Layer combobox updated with "+ len(layer_values) + " items")
+                print(f"Layer combobox updated with {len(layer_values)} items")
         else:
             if self.layer_combobox:
                 self.layer_combobox['values'] = []
@@ -614,7 +480,7 @@ class ChipDatabaseApp:
                 file_name, file_data, file_size, file_hash, 'application/octet-stream', gds_library
             ))
 
-            messagebox.showinfo("Success", "Version " + version_number + " uploaded successfully!")
+            messagebox.showinfo("Success", f"Version {version_number} uploaded successfully!")
             self.version_comment.delete(0, tk.END)
             self.gds_library.delete(0, tk.END)
             self.file_path_label.config(text="No file selected")
@@ -684,9 +550,25 @@ class ChipDatabaseApp:
         for widget in self.root.winfo_children():
             widget.destroy()
 
+        self.main_window = MainWindow(
+            self.root,
+            self.db_manager,
+            self.auth_manager,
+            self.file_manager,
+            self.current_user
+        )
+
+    def logout(self):
+        """Выход из системы"""
+        self.current_user = None
+        self.show_login()
+
 
 def main():
     root = tk.Tk()
+    root.geometry("600x500")  # Увеличенный размер для формы входа
+    root.minsize(500, 400)  # Минимальный размер
+
     app = ChipDatabaseApp(root)
     root.mainloop()
 
