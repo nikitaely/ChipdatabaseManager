@@ -139,13 +139,14 @@ class LoginWindow:
         # Проверка сложности пароля
         strength_result = self.auth_manager.validate_password_strength(password)
         if not strength_result['valid']:
-            messagebox.showwarning("Weak Password",
-                                   f"{strength_result['message']}\n"
-                                   "Recommended: at least 8 characters with uppercase, "
-                                   "lowercase, digits and special characters")
+            message_text = strength_result['message'] + "\n" + \
+                           "Recommended: at least 8 characters with uppercase, " + \
+                           "lowercase, digits and special characters"
+            messagebox.showwarning("Weak Password", message_text)
+
             response = messagebox.askyesno(
                 "Weak Password",
-                f"{strength_result['message']}\nDo you want to continue anyway?"
+                strength_result['message'] + "\nDo you want to continue anyway?"
             )
             if not response:
                 self.reg_password.delete(0, tk.END)
