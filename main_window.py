@@ -31,6 +31,19 @@ class MainWindow:
         self.setup_ui()
         self.refresh_all_comboboxes()
 
+        # Показываем роль пользователя
+        self.show_role_info()
+
+    def show_role_info(self):
+        """Показывает информацию о роли пользователя"""
+        role = self.current_user.get('role', 'user')
+        role_display = "Constructor" if role == 'constructor' else "User"
+        messagebox.showinfo("Welcome", f"Logged in as {self.current_user['full_name']} ({role_display})")
+
+    def user_can_edit(self):
+        """Проверяет, может ли пользователь редактировать данные"""
+        return self.auth_manager.is_constructor(self.current_user)
+
     def setup_ui(self):
         """Создание основного интерфейса"""
         # Создаем notebook для вкладок
@@ -60,7 +73,11 @@ class MainWindow:
         user_frame = ttk.Frame(self.root)
         user_frame.pack(fill='x', padx=10, pady=5)
 
-        ttk.Label(user_frame, text="Logged in as: " + self.current_user['full_name']).pack(side='left')
+        role = self.current_user.get('role', 'user')
+        role_display = "Constructor" if role == 'constructor' else "User"
+
+        user_info = f"Logged in as: {self.current_user['full_name']} ({role_display})"
+        ttk.Label(user_frame, text=user_info).pack(side='left')
         ttk.Button(user_frame, text="Logout", command=self.logout).pack(side='right')
 
     def setup_chips_tab(self, parent):
@@ -77,7 +94,14 @@ class MainWindow:
         self.chip_description_entry = ttk.Entry(add_frame, width=30)
         self.chip_description_entry.grid(row=1, column=1, pady=5, padx=5)
 
-        ttk.Button(add_frame, text="Add Chip", command=self.add_chip).grid(row=2, column=0, columnspan=2, pady=10)
+        self.add_chip_button = ttk.Button(add_frame, text="Add Chip", command=self.add_chip)
+        self.add_chip_button.grid(row=2, column=0, columnspan=2, pady=10)
+
+        # Если пользователь не конструктор - блокируем форму
+        if not self.user_can_edit():
+            self.chip_number_entry.config(state='disabled')
+            self.chip_description_entry.config(state='disabled')
+            self.add_chip_button.config(state='disabled')
 
         # Таблица существующих чипов
         table_frame = ttk.LabelFrame(parent, text="Existing Chips", padding="10")
@@ -116,7 +140,15 @@ class MainWindow:
         self.file_extension_entry = ttk.Entry(add_frame, width=30)
         self.file_extension_entry.grid(row=2, column=1, pady=5, padx=5)
 
-        ttk.Button(add_frame, text="Add Layer", command=self.add_layer).grid(row=3, column=0, columnspan=2, pady=10)
+        self.add_layer_button = ttk.Button(add_frame, text="Add Layer", command=self.add_layer)
+        self.add_layer_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+        # Если пользователь не конструктор - блокируем форму
+        if not self.user_can_edit():
+            self.chip_combobox.config(state='disabled')
+            self.layer_name_entry.config(state='disabled')
+            self.file_extension_entry.config(state='disabled')
+            self.add_layer_button.config(state='disabled')
 
         # Таблица слоев
         table_frame = ttk.LabelFrame(parent, text="Existing Layers", padding="10")
@@ -155,13 +187,21 @@ class MainWindow:
         self.gds_library_entry = ttk.Entry(add_frame, width=30)
         self.gds_library_entry.grid(row=2, column=1, pady=5, padx=5)
 
-        ttk.Button(add_frame, text="Select File", command=self.select_file).grid(row=3, column=0, pady=5)
+        self.select_file_button = ttk.Button(add_frame, text="Select File", command=self.select_file)
+        self.select_file_button.grid(row=3, column=0, pady=5)
         self.file_path_label = ttk.Label(add_frame, text="No file selected")
         self.file_path_label.grid(row=3, column=1, pady=5, padx=5)
 
-        ttk.Button(add_frame, text="Upload Version", command=self.upload_version).grid(
-            row=4, column=0, columnspan=2, pady=10
-        )
+        self.upload_version_button = ttk.Button(add_frame, text="Upload Version", command=self.upload_version)
+        self.upload_version_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Если пользователь не конструктор - блокируем форму
+        if not self.user_can_edit():
+            self.layer_combobox.config(state='disabled')
+            self.version_comment_entry.config(state='disabled')
+            self.gds_library_entry.config(state='disabled')
+            self.select_file_button.config(state='disabled')
+            self.upload_version_button.config(state='disabled')
 
         # Таблица версий
         table_frame = ttk.LabelFrame(parent, text="Version History", padding="10")
@@ -245,6 +285,10 @@ class MainWindow:
 
     def add_chip(self):
         """Добавление нового чипа"""
+        if not self.user_can_edit():
+            messagebox.showerror("Permission Denied", "Only constructors can add chips")
+            return
+
         chip_number = self.chip_number_entry.get()
         description = self.chip_description_entry.get()
 
@@ -279,6 +323,10 @@ class MainWindow:
 
     def add_layer(self):
         """Добавление нового слоя"""
+        if not self.user_can_edit():
+            messagebox.showerror("Permission Denied", "Only constructors can add layers")
+            return
+
         selected_chip = self.chip_combobox.get()
         layer_name = self.layer_name_entry.get()
         file_extension = self.file_extension_entry.get()
@@ -317,6 +365,10 @@ class MainWindow:
 
     def select_file(self):
         """Выбор файла для загрузки"""
+        if not self.user_can_edit():
+            messagebox.showerror("Permission Denied", "Only constructors can upload files")
+            return
+
         file_path = filedialog.askopenfilename(
             title="Select GDS file",
             filetypes=[("GDS files", "*.gds"), ("All files", "*.*")]
@@ -328,6 +380,10 @@ class MainWindow:
 
     def upload_version(self):
         """Загрузка новой версии файла"""
+        if not self.user_can_edit():
+            messagebox.showerror("Permission Denied", "Only constructors can upload files")
+            return
+
         selected_layer = self.layer_combobox.get()
         comment = self.version_comment_entry.get()
         gds_library = self.gds_library_entry.get()

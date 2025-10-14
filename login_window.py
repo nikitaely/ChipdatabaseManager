@@ -109,7 +109,8 @@ class LoginWindow:
             self.on_login_success({
                 'user_id': result['user_id'],
                 'username': result['username'],
-                'full_name': result['full_name']
+                'full_name': result['full_name'],
+                'role': result['role']  # Добавляем роль
             })
         else:
             messagebox.showerror("Error", result['message'])

@@ -224,7 +224,7 @@ class AuthManager:
         test_hash, _ = self.custom_hash_password(password, salt)
         return test_hash == hashed_password
 
-    def register_user(self, username, password, full_name):
+    def register_user(self, username, password, full_name, role='user'):
         """
         Регистрация нового пользователя
         """
@@ -232,6 +232,13 @@ class AuthManager:
             return {
                 'success': False,
                 'message': "All fields are required"
+            }
+
+        # Проверяем валидность роли
+        if role not in ['user', 'constructor']:
+            return {
+                'success': False,
+                'message': "Invalid role"
             }
 
         # Проверяем, существует ли пользователь
@@ -250,8 +257,8 @@ class AuthManager:
             cur = conn.cursor()
 
             cur.execute(
-                "INSERT INTO users (username, password_hash, salt, full_name) VALUES (%s, %s, %s, %s)",
-                (username, password_hash, salt, full_name)
+                "INSERT INTO users (username, password_hash, salt, full_name, role) VALUES (%s, %s, %s, %s, %s)",
+                (username, password_hash, salt, full_name, role)
             )
 
             conn.commit()
@@ -274,6 +281,32 @@ class AuthManager:
                 'message': "Unexpected error: " + str(e)
             }
 
+    def _get_user_by_username(self, username):
+        """
+        Получение данных пользователя по имени
+        """
+        try:
+            conn = psycopg2.connect(**self.db_config)
+            cur = conn.cursor()
+
+            cur.execute(
+                "SELECT user_id, username, password_hash, salt, full_name, role FROM users WHERE username = %s",
+                (username,)
+            )
+
+            result = cur.fetchone()
+            cur.close()
+            conn.close()
+
+            return result
+
+        except psycopg2.Error as e:
+            print("Database error in _get_user_by_username: " + str(e))
+            return None
+        except Exception as e:
+            print("Unexpected error in _get_user_by_username: " + str(e))
+            return None
+
     def login_user(self, username, password):
         """
         Аутентификация пользователя
@@ -291,7 +324,7 @@ class AuthManager:
                 'message': "Invalid username or password"
             }
 
-        user_id, stored_username, stored_hash, salt, full_name = user_data
+        user_id, stored_username, stored_hash, salt, full_name, role = user_data
 
         if self.verify_password(password, stored_hash, salt):
             return {
@@ -299,6 +332,7 @@ class AuthManager:
                 'user_id': user_id,
                 'username': stored_username,
                 'full_name': full_name,
+                'role': role,
                 'message': "Login successful"
             }
         else:
@@ -307,31 +341,18 @@ class AuthManager:
                 'message': "Invalid username or password"
             }
 
-    def _get_user_by_username(self, username):
-        """
-        Получение данных пользователя по имени
-        """
-        try:
-            conn = psycopg2.connect(**self.db_config)
-            cur = conn.cursor()
+    # Добавьте метод проверки роли
+    def user_has_role(self, user_data, required_role):
+        """Проверка наличия нужной роли у пользователя"""
+        return user_data.get('role') == required_role
 
-            cur.execute(
-                "SELECT user_id, username, password_hash, salt, full_name FROM users WHERE username = %s",
-                (username,)
-            )
+    def is_constructor(self, user_data):
+        """Проверка является ли пользователь конструктором"""
+        return self.user_has_role(user_data, 'constructor')
 
-            result = cur.fetchone()
-            cur.close()
-            conn.close()
-
-            return result
-
-        except psycopg2.Error as e:
-            print("Database error in _get_user_by_username: " + str(e))
-            return None
-        except Exception as e:
-            print("Unexpected error in _get_user_by_username: " + str(e))
-            return None
+    def is_user(self, user_data):
+        """Проверка является ли пользователь обычным пользователем"""
+        return self.user_has_role(user_data, 'user')
 
     def change_password(self, user_id, current_password, new_password):
         """Смена пароля пользователя"""
