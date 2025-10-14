@@ -3,17 +3,16 @@
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    ['main.py'],  # Главный файл вашего приложения
     pathex=[],
     binaries=[],
     datas=[],
     hiddenimports=[
         'psycopg2',
-        'bcrypt',
         'tkinter',
-        'hashlib',
-        'os',
-        'datetime'
+        'tkinter.ttk',
+        'tkinter.messagebox', 
+        'tkinter.filedialog'
     ],
     hookspath=[],
     hooksconfig={},
@@ -33,6 +32,7 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
+    [],
     name='ChipDatabaseManager',
     debug=False,
     bootloader_ignore_signals=False,
@@ -46,5 +46,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico',  # Добавьте иконку если нужно
 )

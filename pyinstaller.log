@@ -1,0 +1,58 @@
+44 INFO: PyInstaller: 4.2
+44 INFO: Python: 3.5.2
+45 INFO: Platform: Linux-4.15.0-142-generic-x86_64-with-Ubuntu-16.04-xenial
+45 INFO: wrote /home/nik/projects/ChipdatabaseManager/main.spec
+47 INFO: UPX is not available.
+49 INFO: Extending PYTHONPATH with paths
+['/home/nik/projects/ChipdatabaseManager',
+ '/home/nik/projects/ChipdatabaseManager']
+88 INFO: checking Analysis
+89 INFO: Building Analysis because Analysis-00.toc is non existent
+89 INFO: Initializing module dependency graph...
+90 INFO: Caching module graph hooks...
+96 INFO: Analyzing base_library.zip ...
+4115 INFO: Caching module dependency graph...
+4180 INFO: running Analysis Analysis-00.toc
+4256 INFO: Analyzing /home/nik/projects/ChipdatabaseManager/main.py
+4774 INFO: Processing module hooks...
+4775 INFO: Loading module hook 'hook-difflib.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+4776 INFO: Excluding import of doctest from module difflib
+4776 INFO: Loading module hook 'hook-pickle.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+4777 INFO: Excluding import of argparse from module pickle
+4778 INFO: Loading module hook 'hook-heapq.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+4778 INFO: Excluding import of doctest from module heapq
+4778 INFO: Loading module hook 'hook-psycopg2.py' from '/home/nik/.local/lib/python3.5/site-packages/_pyinstaller_hooks_contrib/hooks/stdhooks'...
+4779 WARNING: Hidden import "mx.DateTime" not found!
+4779 INFO: Loading module hook 'hook-encodings.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+4836 INFO: Loading module hook 'hook-_tkinter.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+4917 INFO: checking Tree
+4917 INFO: Building Tree because Tree-00.toc is non existent
+4917 INFO: Building Tree Tree-00.toc
+4939 INFO: checking Tree
+4940 INFO: Building Tree because Tree-01.toc is non existent
+4940 INFO: Building Tree Tree-01.toc
+4979 WARNING: Tcl modules directory /usr/share/tcltk/tcl8.6/../tcl8 does not exist.
+4980 INFO: Loading module hook 'hook-xml.py' from '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks'...
+5246 INFO: Looking for ctypes DLLs
+5488 INFO: Analyzing run-time hooks ...
+5492 INFO: Including run-time hook '/home/nik/.local/lib/python3.5/site-packages/PyInstaller/hooks/rthooks/pyi_rth__tkinter.py'
+5497 INFO: Looking for dynamic libraries
+6299 INFO: Looking for eggs
+6300 INFO: Python library not in binary dependencies. Doing additional searching...
+6429 INFO: Using Python library /usr/lib/x86_64-linux-gnu/libpython3.5m.so.1.0
+6432 INFO: Warnings written to /home/nik/projects/ChipdatabaseManager/build/main/warn-main.txt
+6449 INFO: Graph cross-reference written to /home/nik/projects/ChipdatabaseManager/build/main/xref-main.html
+6465 INFO: checking PYZ
+6465 INFO: Building PYZ because PYZ-00.toc is non existent
+6466 INFO: Building PYZ (ZlibArchive) /home/nik/projects/ChipdatabaseManager/build/main/PYZ-00.pyz
+6803 INFO: Building PYZ (ZlibArchive) /home/nik/projects/ChipdatabaseManager/build/main/PYZ-00.pyz completed successfully.
+6806 INFO: checking PKG
+6806 INFO: Building PKG because PKG-00.toc is non existent
+6806 INFO: Building PKG (CArchive) PKG-00.pkg
+11789 INFO: Building PKG (CArchive) PKG-00.pkg completed successfully.
+11795 INFO: Bootloader /home/nik/.local/lib/python3.5/site-packages/PyInstaller/bootloader/Linux-64bit/run
+11795 INFO: checking EXE
+11795 INFO: Building EXE because EXE-00.toc is non existent
+11795 INFO: Building EXE from EXE-00.toc
+11796 INFO: Appending archive to ELF section in EXE /home/nik/projects/ChipdatabaseManager/dist/main
+11949 INFO: Building EXE from EXE-00.toc completed successfully.
