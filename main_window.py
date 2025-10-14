@@ -37,8 +37,11 @@ class MainWindow:
     def show_role_info(self):
         """Показывает информацию о роли пользователя"""
         role = self.current_user.get('role', 'user')
-        role_display = "Constructor" if role == 'constructor' else "User"
-        messagebox.showinfo("Welcome", f"Logged in as {self.current_user['full_name']} ({role_display})")
+        if role == 'constructor':
+            role_display = "Constructor"
+        else:
+            role_display = "User"
+        messagebox.showinfo("Welcome", "Logged in as {} ({})".format(self.current_user['full_name'], role_display))
 
     def user_can_edit(self):
         """Проверяет, может ли пользователь редактировать данные"""
@@ -74,9 +77,12 @@ class MainWindow:
         user_frame.pack(fill='x', padx=10, pady=5)
 
         role = self.current_user.get('role', 'user')
-        role_display = "Constructor" if role == 'constructor' else "User"
+        if role == 'constructor':
+            role_display = "Constructor"
+        else:
+            role_display = "User"
 
-        user_info = f"Logged in as: {self.current_user['full_name']} ({role_display})"
+        user_info = "Logged in as: {} ({})".format(self.current_user['full_name'], role_display)
         ttk.Label(user_frame, text=user_info).pack(side='left')
         ttk.Button(user_frame, text="Logout", command=self.logout).pack(side='right')
 
